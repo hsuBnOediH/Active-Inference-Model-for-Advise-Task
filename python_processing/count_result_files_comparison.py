@@ -8,7 +8,7 @@ def find_incomplete_runs(num_indices):
     directory_path = '/mnt/dell_storage/labs/rsmith/lab-members/fli/advise_task/results/model_comparison/'
 
     # Pattern to match filenames like "advice_task_model_identification_[uuid]_[idx].csv"
-    pattern = re.compile(r'advice_task_model_comparison_([a-f0-9\-]+)_(\d+)\.csv')
+    pattern = re.compile(r'advice_task_model_comparsion_([a-f0-9\-]+)_(\d+)\.csv')
 
     # Dictionary to store idx values for each uuid
     uuid_idx_map = defaultdict(list)
