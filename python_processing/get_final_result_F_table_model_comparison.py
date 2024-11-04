@@ -8,7 +8,7 @@ path = '/mnt/dell_storage/labs/rsmith/lab-members/fli/advise_task/results/model_
 # Initialize the dictionary to store UUIDs and their F values for 10 indexes
 uuid_dict = {}
 
-# Define a regex pattern to match file names and capture the uuid and idx
+# Define a regex pattern to match file names and capture the UUID and index
 pattern = re.compile(r"advice_task_model_comparsion_([a-fA-F0-9\-]+)_(\d+)\.csv")
 
 # Iterate over all files in the directory
@@ -17,7 +17,7 @@ for file_name in os.listdir(path):
     if match:
         # Extract UUID and index from the file name
         uuid = match.group(1)
-        idx = int(match.group(2))-1
+        idx = int(match.group(2)) - 1
         
         # Ensure the UUID is in the dictionary with a 10-element array initialized to 0
         if uuid not in uuid_dict:
@@ -44,8 +44,8 @@ with open(output_csv_path, 'w', newline='') as csvfile:
     header = ['uuid'] + [f"idx_{i+1}" for i in range(10)]
     writer.writerow(header)
     
-    # Write UUIDs and their values
-    for uuid, values in uuid_dict.items():
-        writer.writerow([uuid] + values)
+    # Write UUIDs and their values, sorted by UUID
+    for uuid in sorted(uuid_dict.keys()):
+        writer.writerow([uuid] + uuid_dict[uuid])
 
 print(f"Output saved to {output_csv_path}")
