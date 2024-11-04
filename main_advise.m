@@ -8,7 +8,7 @@ clear all;
 
 % SWITCHES
 % True -> Generate simulated behavior
-SIM = true;
+SIM = false;
 % True -> Fit the behavior data into the model
 FIT = true;
 % True -> TODO
@@ -26,11 +26,15 @@ ROOT = '';
 % RES_PATH:
 % If RES_PATH is not assigned (i.e., empty), it will be auto-generated relative to ROOT.
 % If RES_PATH is a relative path, it will be appended to the ROOT path.
-RES_PATH = '/mnt/dell_storage/labs/rsmith/lab-members/fli/advise_task/results';
+RES_PATH = '/mnt/dell_storage/labs/rsmith/lab-members/fli/advise_task/results/model_comparison/';
+% RES_PATH = 'results/';
+
 % INPUT_PATH:
 % The folder path where the subject file is located. If INPUT_PATH is a relative path,
 % it will be appended to the ROOT path.
 INPUT_PATH = '/mnt/dell_storage/labs/NPC/DataSink/StimTool_Online/WB_Advice';
+% INPUT_PATH = 'inputs/';
+
 % IDX_CANDIDATE:
 % This will define which candidate (set of parameters) is currently in use
 % Modify this value to switch between different candidates (1 to 10 in this case)
@@ -63,7 +67,7 @@ if isempty(FIT_SUBJECT)
     FIT_SUBJECT = getenv('FIT_SUBJECT');
 end
 
-IDX_CANDIDATE = 0;
+
 
 if IDX_CANDIDATE < 1 || IDX_CANDIDATE > 10
     env_value = getenv('IDX_CANDIDATE');
@@ -106,35 +110,6 @@ disp(['Environment System: ', env_sys]);
 disp(['IDX_CANDIDATE: ', num2str(IDX_CANDIDATE)]);
 disp('-----------------------------');
 
-% 
-% % Setup directories based on system
-% if env_sys == "pc"
-%     % ROOT = 'L:';
-%     % results_dir = 'L:/rsmith/lab-members/cgoldman/Wellbeing/advise_task/fitting_actual_data/advise_fits_sandbox'; % Where the fit results will save
-%     % INPUT_DIRECTORY = [root '/NPC/DataSink/StimTool_Online/WB_Advice'];  % Where the subject file is located
-% 
-% elseif env_sys == "mac"
-%     [root, ~, ~] = fileparts(mfilename('fullpath'));
-% 
-%     % only run one subjuect, feng_self data
-%     FIT_SUBJECT = 'FENGTEST';
-%     results_dir = fullfile(root, 'results');
-%     INPUT_DIRECTORY = fullfile(root, 'inputs');
-% 
-% 
-% else
-%     root = '/media/labs';
-%     FIT_SUBJECT = getenv('SUBJECT');
-%     results_dir = getenv('RESULTS');
-%     INPUT_DIRECTORY = getenv('INPUT_DIRECTORY');
-% 
-% end
-% 
-% 
-% fprintf([INPUT_DIRECTORY '\n']);
-% fprintf([FIT_SUBJECT '\n']);
-
-
 % Add external paths depending on the system
 if strcmp(env_sys, 'pc')
     spmPath = 'L:/rsmith/all-studies/util/spm12/';
@@ -159,25 +134,6 @@ addpath(spmDemPath);
 addpath(tutorialPath);
 
 
-
-
-
-% % for lab cluster, uncomment if needed
-% if is_feng_local
-%     addpath([root '/spm/']);
-%     addpath([root '/spm/toolbox/DEM/']);
-%     addpath([root '/Active-Inference-Tutorial-Scripts-main']);
-% else
-%     addpath([root '/rsmith/all-studies/util/spm12/']);
-%     addpath([root '/rsmith/all-studies/util/spm12/toolbox/DEM/']);
-%     addpath([root '/rsmith/lab-members/cgoldman/Active-Inference-Tutorial-Scripts-main']);
-% 
-% end
-
-
-% Define all parameters passed into the model; specify which ones to fit in
-% field
-
 all_params = struct(...
     'p_a', 0.8, ...
     'inv_temp', 4, ...
@@ -200,29 +156,6 @@ all_params = struct(...
     'state_exploration', 1, ...
     'parameter_exploration', 0 ...
 );
-
-
-% 
-% params.p_a = .8;
-% params.inv_temp = 4;
-% params.reward_value = 4;
-% params.l_loss_value = 4;
-% params.omega = .2;
-% %params.omega_d_win = .2;
-% %params.omega_d_loss = .2;
-% %params.omega_a_win = .2;
-% %params.omega_a_loss = .2;
-% %params.omega_d = .2;
-% %params.omega_a = .2;
-% params.eta = 1;
-% %params.eta_d = .5;
-% %params.eta_d_win = .5;
-% %params.eta_d_loss = .5;
-% %params.eta_a = .5;
-% %params.eta_a_win = .5;
-% %params.eta_a_loss = .5;
-% params.state_exploration = 1;
-% params.parameter_exploration = 0;
 
 
 % Define an array of 10 field combinations (cell arrays)
@@ -271,8 +204,47 @@ end
 if FIT && ~SIM
     % If only fitting is required
     disp('Performing fitting only...');
-    % Add your fitting code here
-    % Example: fit_model(candidate_params);
+    if strcmp(env_sys,'mac')|| strcmp(env_sys, 'cluster')
+       [fit_results, DCM] = Advice_fit_prolific(FIT_SUBJECT, INPUT_PATH, params, fields, PLOT);
+    end
+    
+    fit_results.free_energy = DCM.F;
+    if isfield(fit_results, 'id')
+        fit_results = rmfield(fit_results, 'id');
+    end
+    if isfield(fit_results, 'file')
+        fit_results = rmfield(fit_results, 'file');
+    end
+
+    detail_res_file_name = 'advice_task_model_comparsion'; % Base name for the model
+    candidate_idx = num2str(IDX_CANDIDATE); % Convert candidate index to string
+    file_name = [detail_res_file_name,'_',FIT_SUBJECT, '_', candidate_idx, '.csv']; % Create file name
+    file_path = fullfile(RES_PATH, file_name); % Full path for the CSV file
+
+    res_field_names = fieldnames(fit_results);
+
+    if ~isfile(file_path)
+        fid = fopen(file_path, 'w'); 
+        if fid == -1
+            error('Failed to open file: %s. Please check the file path and permissions.', file_path);
+        end
+        fprintf(fid, 'FIT_SUBJECT');
+        field_names = fieldnames(fit_results);
+        for i = 1:length(field_names)
+            fprintf(fid, ',%s', field_names{i});
+        end
+        fprintf(fid, '\n');
+        fclose(fid);
+    end
+    fid = fopen(file_path, 'a'); 
+    fprintf(fid, '%s', FIT_SUBJECT); 
+    for i = 1:length(res_field_names)
+        fprintf(fid, ',%f', fit_results.(res_field_names{i}));
+     end
+    fprintf(fid, '\n'); % End the line for this subject
+    fclose(fid);
+
+ 
 
 elseif FIT && SIM
     if strcmp(env_sys,'mac')|| strcmp(env_sys, 'cluster')
