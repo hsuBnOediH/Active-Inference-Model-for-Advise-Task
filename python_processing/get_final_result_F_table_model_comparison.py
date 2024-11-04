@@ -9,7 +9,7 @@ path = '/mnt/dell_storage/labs/rsmith/lab-members/fli/advise_task/results/model_
 uuid_dict = {}
 
 # Define a regex pattern to match file names and capture the uuid and idx
-pattern = re.compile(r"advice_task_model_comparison_([a-fA-F0-9\-]+)_(\d+)\.csv")
+pattern = re.compile(r"advice_task_model_comparsion_([a-fA-F0-9\-]+)_(\d+)\.csv")
 
 # Iterate over all files in the directory
 for file_name in os.listdir(path):
