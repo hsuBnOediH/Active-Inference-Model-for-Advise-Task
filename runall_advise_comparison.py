@@ -21,7 +21,7 @@ with open(subject_list_path) as infile:
 
 ssub_path = '/mnt/dell_storage/labs/rsmith/lab-members/fli/advise_task/Active-Inference-Model-for-Advise-Task/run_advise_model_comparison.ssub'
 
-for idx_candidate in [2,3,4,5,6,7,8,9,10]:
+for idx_candidate in [1]:
     for subject in subjects:
         stdout_name = f"{results}/logs/{subject}-%J.stdout"
         stderr_name = f"{results}/logs/{subject}-%J.stderr"
