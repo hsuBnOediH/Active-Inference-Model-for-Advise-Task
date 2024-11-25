@@ -3,7 +3,7 @@ import sys, os, re, subprocess
 subject_list_path = '/mnt/dell_storage/labs/rsmith/lab-members/fli/advise_task/subject_id/advise_subject_IDs_prolific_wo_uncomplete.csv'
 
 
-results = '/mnt/dell_storage/labs/rsmith/lab-members/fli/advise_task/results/model_comparison/'
+results = '/mnt/dell_storage/labs/rsmith/lab-members/fli/advise_task/results/balanced_AI/'
 
 if not os.path.exists(results):
     os.makedirs(results)

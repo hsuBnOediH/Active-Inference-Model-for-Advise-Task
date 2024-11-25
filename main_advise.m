@@ -26,8 +26,8 @@ ROOT = '';
 % RES_PATH:
 % If RES_PATH is not assigned (i.e., empty), it will be auto-generated relative to ROOT.
 % If RES_PATH is a relative path, it will be appended to the ROOT path.
-RES_PATH = '/mnt/dell_storage/labs/rsmith/lab-members/fli/advise_task/results/model_comparison/';
-% RES_PATH = 'results/';
+RES_PATH = '/mnt/dell_storage/labs/rsmith/lab-members/fli/advise_task/results/balanced_AI/';
+%RES_PATH = 'results/';
 
 % INPUT_PATH:
 % The folder path where the subject file is located. If INPUT_PATH is a relative path,
@@ -40,6 +40,9 @@ INPUT_PATH = '/mnt/dell_storage/labs/NPC/DataSink/StimTool_Online/WB_Advice';
 % Modify this value to switch between different candidates (1 to 10 in this case)
 IDX_CANDIDATE = 0; % Default to candidate 1, can be changed dynamically
 
+% MODEL;
+% Define the model to be used for the inversion, either Simple_Advice_Model_CMG or Simple_Advice_Model_CMG_same_num_choices
+MODEL = @Simple_Advice_Model_CMG_same_num_choices;
 
 
 % Detect the system
@@ -205,7 +208,11 @@ if FIT && ~SIM
     % If only fitting is required
     disp('Performing fitting only...');
     if strcmp(env_sys,'mac')|| strcmp(env_sys, 'cluster')
-       [fit_results, DCM] = Advice_fit_prolific(FIT_SUBJECT, INPUT_PATH, params, fields, PLOT);
+        % put every parameter into DCM.params
+        DCM.params = params;
+        DCM.model = MODEL;
+        
+       [fit_results, DCM] = Advice_fit_prolific(FIT_SUBJECT, INPUT_PATH, DCM, fields, PLOT);
     end
     
     fit_results.free_energy = DCM.F;

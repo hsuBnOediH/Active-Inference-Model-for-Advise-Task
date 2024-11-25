@@ -5,7 +5,7 @@ from collections import defaultdict
 
 def find_incomplete_runs(num_indices):
     # Define the directory containing the files
-    directory_path = '/mnt/dell_storage/labs/rsmith/lab-members/fli/advise_task/results/'
+    directory_path = '/mnt/dell_storage/labs/rsmith/lab-members/fli/advise_task/results/balanced_AI/'
 
     # Pattern to match filenames like "advice_task_model_identification_[uuid]_[idx].csv"
     pattern = re.compile(r'advice_task_model_identification_([a-f0-9\-]+)_(\d+)\.csv')

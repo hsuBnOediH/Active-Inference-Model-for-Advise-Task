@@ -3,7 +3,7 @@ import csv
 import re
 
 # Define path to your files
-path = '/mnt/dell_storage/labs/rsmith/lab-members/fli/advise_task/results/'
+path = '/mnt/dell_storage/labs/rsmith/lab-members/fli/advise_task/results/balanced_AI/'
 
 # Initialize the dictionary to store UUIDs and their F values for 10 indexes
 uuid_dict = {}
