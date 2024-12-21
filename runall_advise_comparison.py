@@ -67,5 +67,5 @@ for idx_candidate in number_list:
         stdout_name = f"{log_res_path}/{subject}-{idx_candidate}-%J.stdout"
         stderr_name = f"{log_res_path}/{subject}-{idx_candidate}-%J.stderr"
         jobname = f'ainf-advise-comparison-{subject}-{idx_candidate}'
-        os.system(f"sbatch -J {jobname} -o {stdout_name} -e {stderr_name} {ssub_path} {subject} {output_folder_path} {idx_candidate}")
+        os.system(f"sbatch -J {jobname} -o {stdout_name} -e {stderr_name} {ssub_path} {subject} {temp_res_path} {idx_candidate}")
         print(f"SUBMITTED JOB [{jobname}]")

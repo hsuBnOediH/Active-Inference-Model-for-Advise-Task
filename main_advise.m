@@ -280,9 +280,8 @@ elseif FIT && SIM
     sim_fit_result = advise_sim_fit(sim_data, fields, params);
 
 
-    detail_res_file_name = 'advice_task_model_identification'; % Base name for the model
     candidate_idx = num2str(IDX_CANDIDATE); % Convert candidate index to string
-    file_name = [detail_res_file_name,'_',FIT_SUBJECT, '_', candidate_idx, '.csv']; % Create file name
+    file_name = [FIT_SUBJECT, '_', candidate_idx, '.csv']; % Create file name
     file_path = fullfile(RES_PATH, file_name); % Full path for the CSV file
 
     % Extract data from sim_fit_result for writing into CSV
