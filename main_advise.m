@@ -38,7 +38,7 @@ INPUT_PATH = 'inputs/';
 % IDX_CANDIDATE:
 % This will define which candidate (set of parameters) is currently in use
 % Modify this value to switch between different candidates (1 to 10 in this case)
-IDX_CANDIDATE = 6; % Default to candidate 1, can be changed dynamically
+IDX_CANDIDATE = 1; % Default to candidate 1, can be changed dynamically
 
 % MODEL;
 % Define the model to be used for the inversion, either Simple_Advice_Model_CMG or Simple_Advice_Model_CMG_same_num_choices
@@ -85,8 +85,6 @@ if isempty(RES_PATH)
     RES_PATH = fullfile(ROOT, 'results');
 elseif strcmp(env_sys, 'cluster') && strcmp(RES_PATH, 'env_var')
     RES_PATH = getenv(RESULTS);
-elseif ~isAbsolutePath(RES_PATH)
-    RES_PATH = fullfile(ROOT, RES_PATH);
 end
 
 % Check and handle INPUT_PATH
@@ -94,8 +92,6 @@ if isempty(INPUT_PATH)
     INPUT_PATH = fullfile(ROOT, 'inputs');
 elseif strcmp(env_sys, 'cluster') && strcmp(INPUT_PATH, 'env_var')
     INPUT_PATH = getenv('INPUT_DIRECTORY'); 
-elseif ~isAbsolutePath(INPUT_PATH)
-    INPUT_PATH = fullfile(ROOT, INPUT_PATH);
 end
 
 
@@ -378,16 +374,3 @@ end
 % 
 % saveas(gcf,[results_dir '/' FIT_SUBJECT '_fit_plot.png']);
 % save(fullfile([results_dir '/fit_results_' FIT_SUBJECT '.mat']), 'DCM');
-% 
-
-% Define the isAbsolutePath function
-function isAbs = isAbsolutePath(givenPath)
-    if ispc
-        isAbs = length(givenPath) >= 2 && givenPath(2) == ':';
-    elseif isunix || ismac
-        isAbs = strncmp(givenPath, '/', 1);
-    else
-        error('Unknown operating system.');
-    end
-end
-

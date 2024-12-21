@@ -1,377 +1,339 @@
 function [fit_results, DCM] = Advice_fit_prolific(subject,folder,DCM,field, plot, settings)
-% initialize has_practice_effects to false, tracking if this participant's
-% first complete behavioral file came after they played the task a little
-% bit
-has_practice_effects = false;
-% Manipulate Data
-directory = dir(folder);
+    % initialize has_practice_effects to false, tracking if this participant's
+    % first complete behavioral file came after they played the task a little
+    % bit
+    has_practice_effects = false;
+    % Manipulate Data
+    directory = dir(folder);
 
-% sort by date
-dates = datetime({directory.date}, 'InputFormat', 'dd-MMM-yyyy HH:mm:ss');
-% Sort the dates and get the sorted indices
-[~, sortedIndices] = sort(dates);
-% Use the sorted indices to sort the structure array
-sortedDirectory = directory(sortedIndices);
+    % sort by date
+    dates = datetime({directory.date}, 'InputFormat', 'dd-MMM-yyyy HH:mm:ss');
+    % Sort the dates and get the sorted indices
+    [~, sortedIndices] = sort(dates);
+    % Use the sorted indices to sort the structure array
+    sortedDirectory = directory(sortedIndices);
 
-index_array = find(arrayfun(@(n) contains(sortedDirectory(n).name, ['active_trust_' subject]),1:numel(sortedDirectory)));
-if length(index_array) > 1
-    disp("WARNING, MULTIPLE BEHAVIORAL FILES FOUND FOR THIS ID. USING THE FIRST FULL ONE")
-end
-file = '';
-for k = 1:length(index_array)
-    file_index = index_array(k);
-    file = [folder '/' sortedDirectory(file_index).name];
-
-    subdat = readtable(file);
-    if strcmp(class(subdat.trial),'cell')
-        subdat.trial = str2double(subdat.trial);
-    end
-    % make sure this file has correct number of trials
-    if any(cellfun(@(x) isequal(x, 'MAIN'), subdat.trial_type)) && (max(subdat.trial) ~= 359)
-        has_practice_effects = true;
-    end
-    if max(subdat.trial) ~= 359
-        continue;
-    end
-  
-    subdat = subdat(max(find(ismember(subdat.trial_type,'MAIN')))+1:end,:);
-
-
-    compressed = subdat(subdat.event_type==4,:);
-
-    % Prepare a new cell array to hold the split trial_type values
-    trialinfo = cell(size(compressed,1), 3);
-    % Loop over each unique trial to split the trial_type string
-    for i = 1:size(compressed,1)
-        parts = strsplit(compressed.trial_type{i}, '_');
-        % Reassign the split parts to the new order and convert to numeric
-        trialinfo{i, 2} = (parts{1}); % Second column
-        trialinfo{i, 1} = (parts{3}); % First column
-        trialinfo{i, 3} = (parts{4}); % Third column
+    index_array = find(arrayfun(@(n) contains(sortedDirectory(n).name, ['active_trust_' subject]),1:numel(sortedDirectory)));
+    if length(index_array) > 1
+        disp("WARNING, MULTIPLE BEHAVIORAL FILES FOUND FOR THIS ID. USING THE FIRST FULL ONE")
     end
 
-    % lets look at options selected
-    response = subdat(subdat.event_type==8, :);
-    % if the person managed to cause a glitch and select two bandits in one 
-    % trial, use only the first one as response/result
-    [~, idx] = unique(response.trial, 'first');
-    response = response(idx, :);
-    resp = response.response;
-    result = subdat(subdat.event_type==9 & ~(strcmp(subdat.result,"try left")|strcmp(subdat.result,"try right")), :);
-    points = result.result;
-    % re = tp(~ismember(tp.result, {'try right', 'try left'}),:).result;
-    % w_ad = tp(ismember(tp.result, {'try right', 'try left'}),{'trial' 'result'});
+    file = '';
+    for k = 1:length(index_array)
+        file_index = index_array(k);
+        file = [folder '/' sortedDirectory(file_index).name];
 
-    got_advice = subdat.event_type ==9 & (strcmp(subdat.result,"try left")|strcmp(subdat.result,"try right"));
-    trials_got_advice = subdat.trial(got_advice);
-    advice_given = subdat.result(got_advice);
-    trials_got_advice = trials_got_advice + 1;
+        subdat = readtable(file);
+        if strcmp(class(subdat.trial),'cell')
+            subdat.trial = str2double(subdat.trial);
+        end
+        % make sure this file has correct number of trials
+        if any(cellfun(@(x) isequal(x, 'MAIN'), subdat.trial_type)) && (max(subdat.trial) ~= 359)
+            has_practice_effects = true;
+        end
+        if max(subdat.trial) ~= 359
+            continue;
+        end
+    
+        subdat = subdat(max(find(ismember(subdat.trial_type,'MAIN')))+1:end,:);
 
 
-    for n = 1:size(resp,1)
-        % indicate if participant chose right or left
-        if ismember(resp(n),'right')
-            r=4;
-        elseif ismember(resp(n),'left')
-            r=3;
-         elseif ismember(resp(n),'none')
-            error("this person chose the did nothing option and our scripts are not set up to allow that")
-        end 
+        compressed = subdat(subdat.event_type==4,:);
 
-        if str2double(points{n}) >0 
-            pt=3;
-        elseif str2double(points{n}) <0 
-            pt=2;
-        else
-            error("this person chose the did nothing option and our scripts are not set up to allow that")
+        % Prepare a new cell array to hold the split trial_type values
+        trialinfo = cell(size(compressed,1), 3);
+        % Loop over each unique trial to split the trial_type string
+        for i = 1:size(compressed,1)
+            parts = strsplit(compressed.trial_type{i}, '_');
+            % Reassign the split parts to the new order and convert to numeric
+            trialinfo{i, 2} = (parts{1}); % Second column
+            trialinfo{i, 1} = (parts{3}); % First column
+            trialinfo{i, 3} = (parts{4}); % Third column
         end
 
-        if ismember(n, trials_got_advice)
-            u{n} = [1 2; 1 r]';
-            index = find(trials_got_advice == n);
-            if strcmp(advice_given{index}, 'try right')
-                y = 3;
-            elseif strcmp(advice_given{index}, 'try left')
-                y = 2;
+        % lets look at options selected
+        response = subdat(subdat.event_type==8, :);
+        % if the person managed to cause a glitch and select two bandits in one 
+        % trial, use only the first one as response/result
+        [~, idx] = unique(response.trial, 'first');
+        response = response(idx, :);
+        resp = response.response;
+        result = subdat(subdat.event_type==9 & ~(strcmp(subdat.result,"try left")|strcmp(subdat.result,"try right")), :);
+        points = result.result;
+        % re = tp(~ismember(tp.result, {'try right', 'try left'}),:).result;
+        % w_ad = tp(ismember(tp.result, {'try right', 'try left'}),{'trial' 'result'});
+
+        got_advice = subdat.event_type ==9 & (strcmp(subdat.result,"try left")|strcmp(subdat.result,"try right"));
+        trials_got_advice = subdat.trial(got_advice);
+        advice_given = subdat.result(got_advice);
+        trials_got_advice = trials_got_advice + 1;
+
+
+        for n = 1:size(resp,1)
+            % indicate if participant chose right or left
+            if ismember(resp(n),'right')
+                r=4;
+            elseif ismember(resp(n),'left')
+                r=3;
+            elseif ismember(resp(n),'none')
+                error("this person chose the did nothing option and our scripts are not set up to allow that")
+            end 
+
+            if str2double(points{n}) >0 
+                pt=3;
+            elseif str2double(points{n}) <0 
+                pt=2;
+            else
+                error("this person chose the did nothing option and our scripts are not set up to allow that")
             end
-            o{n} = [1 y 1; 1 1 pt; 1 2 r];
-        else
-            u{n} = [1 r; 1 1]';
-            o{n} = [1 1 1; 1 pt 1; 1 r 1];
+
+            if ismember(n, trials_got_advice)
+                u{n} = [1 2; 1 r]';
+                index = find(trials_got_advice == n);
+                if strcmp(advice_given{index}, 'try right')
+                    y = 3;
+                elseif strcmp(advice_given{index}, 'try left')
+                    y = 2;
+                end
+                o{n} = [1 y 1; 1 1 pt; 1 2 r];
+            else
+                u{n} = [1 r; 1 1]';
+                o{n} = [1 1 1; 1 pt 1; 1 r 1];
+            end
+
+            % get reaction time
+            trial = n-1;
+            trial_data = subdat(subdat.trial==trial,:);
+            asked_advice = any(trial_data.event_type == 6);
+            if ~asked_advice
+                reaction_times{n}=[nan,trial_data.absolute_time(trial_data.event_type==8) - trial_data.absolute_time(trial_data.event_type==5)];
+            else
+                index = find(trial_data.event_type == 5,1);
+                first_stim = trial_data.absolute_time(index);
+                index = find(trial_data.event_type == 6,1);
+                first_action = trial_data.absolute_time(index);
+                index = find(trial_data.event_type == 5);
+                index = index(2);
+                second_stim = trial_data.absolute_time(index);
+                index = find(trial_data.event_type == 8,1);
+                second_action = trial_data.absolute_time(index);        
+
+                reaction_times{n}=[first_action - first_stim,second_action - second_stim];
+            end
         end
 
-        % get reaction time
-        trial = n-1;
-        trial_data = subdat(subdat.trial==trial,:);
-        asked_advice = any(trial_data.event_type == 6);
-        if ~asked_advice
-            reaction_times{n}=[nan,trial_data.absolute_time(trial_data.event_type==8) - trial_data.absolute_time(trial_data.event_type==5)];
-        else
-            index = find(trial_data.event_type == 5,1);
-            first_stim = trial_data.absolute_time(index);
-            index = find(trial_data.event_type == 6,1);
-            first_action = trial_data.absolute_time(index);
-            index = find(trial_data.event_type == 5);
-            index = index(2);
-            second_stim = trial_data.absolute_time(index);
-            index = find(trial_data.event_type == 8,1);
-            second_action = trial_data.absolute_time(index);        
-
-            reaction_times{n}=[first_action - first_stim,second_action - second_stim];
-        end
-    end
-    trialinfo = trialinfo(:,:);
-
-    %plotting old model
-%     if plot
-%             MDP     = advise_gen_model(trialinfo(:,:),params);
-%             for idx_trial = 1:360
-%                 MDP(idx_trial).o = o{idx_trial};
-%                 MDP(idx_trial).u = u{idx_trial};
-%                 MDP(idx_trial).reaction_times = reaction_times{idx_trial};
-%             end
-% 
-%             MDP  = spm_MDP_VB_X_advice_no_message_passing_faster(MDP);
-%             advise_plot_cmg(MDP);
-% 
-% 
-%     end
-
-
-
-
+        trialinfo = trialinfo(:,:);
         DCM.trialinfo = trialinfo;
         DCM.field  = field;            % Parameter field
         DCM.U      =  o(:,:);              % trial specification (stimuli)
         DCM.Y      =  u(:,:);              % responses (action)
         DCM.reaction_times = reaction_times;
-
         DCM.mode            = 'fit';
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
         DCM        = advice_inversion(DCM);   % Invert the model
         break;
-end
-     %% 6.3 Check deviation of prior and posterior means & posterior covariance:
-        %==========================================================================
+    end
+    %% 6.3 Check deviation of prior and posterior means & posterior covariance:
+    %==========================================================================
 
-        %--------------------------------------------------------------------------
-        % re-transform values and compare prior with posterior estimates
-        %--------------------------------------------------------------------------
-        fields = fieldnames(DCM.M.pE);
-        params = DCM.params;
-        for i = 1:length(fields)
-            field = fields{i};
-            if ismember(field, {'p_right', 'p_a', 'eta', 'omega', 'eta_a_win', 'omega_a_win',...
-                    'eta_a','omega_a','eta_d','omega_d','eta_a_loss','omega_a_loss','eta_d_win',...
-                    'omega_d_win', 'eta_d_loss', 'omega_d_loss'})
-                params.(field) = 1/(1+exp(-DCM.Ep.(field)));
-            elseif ismember(field, {'inv_temp', 'reward_value', 'l_loss_value', 'state_exploration',...
-                    'parameter_exploration'})
-                params.(field) = exp(DCM.Ep.(field));
-            else
-                params.(field) = DCM.Ep.(field);
-            end
-        end
-
-
-
-        % Simulate beliefs using fitted values to get avg action prob
-        all_MDPs = [];
-
-        % Simulate beliefs using fitted values
-        act_prob_time1=[];
-        act_prob_time2 = [];
-        act_prob_advisor=[];
-        act_prob_bandit = [];
-        model_acc_time1 = [];
-        model_acc_time2 = [];
-        model_acc_advisor = [];
-        model_acc_bandit = [];
-        u = DCM.U;
-        y = DCM.Y;
-
-
-
-        num_trials = size(u,2);
-        num_blocks = floor(num_trials/30);
-        if num_trials == 1
-            block_size = 1;
+    %--------------------------------------------------------------------------
+    % re-transform values and compare prior with posterior estimates
+    %--------------------------------------------------------------------------
+    fields = fieldnames(DCM.M.pE);
+    params = DCM.params;
+    for i = 1:length(fields)
+        field = fields{i};
+        if ismember(field, {'p_right', 'p_a', 'eta', 'omega', 'eta_a_win', 'omega_a_win',...
+                'eta_a','omega_a','eta_d','omega_d','eta_a_loss','omega_a_loss','eta_d_win',...
+                'omega_d_win', 'eta_d_loss', 'omega_d_loss'})
+            params.(field) = 1/(1+exp(-DCM.Ep.(field)));
+        elseif ismember(field, {'inv_temp', 'reward_value', 'l_loss_value', 'state_exploration',...
+                'parameter_exploration'})
+            params.(field) = exp(DCM.Ep.(field));
         else
-            block_size = 30;
+            params.(field) = DCM.Ep.(field);
         end
+    end
 
-        trialinfo = DCM.M.trialinfo;
 
 
-        % Each block is separate -- effectively resetting beliefs at the start of
-        % each block. 
-        for idx_block = 1:num_blocks
-            %priors = posteriors;
-            %MDP     =
-            %advise_gen_model(trialinfo(30*idx_block-29:30*idx_block,:),priors);
-            %old model
+    % Simulate beliefs using fitted values to get avg action prob
+    all_MDPs = [];
 
-            if (num_trials == 1)
-                outcomes = u;
-                actions = y;
-                MDP.o  = outcomes{1};
-                MDP.u  = actions{1};
+    % Simulate beliefs using fitted values
+    act_prob_time1=[];
+    act_prob_time2 = [];
+    act_prob_advisor=[];
+    act_prob_bandit = [];
+    model_acc_time1 = [];
+    model_acc_time2 = [];
+    model_acc_advisor = [];
+    model_acc_bandit = [];
+    u = DCM.U;
+    y = DCM.Y;
+
+
+
+    num_trials = size(u,2);
+    num_blocks = floor(num_trials/30);
+    if num_trials == 1
+        block_size = 1;
+    else
+        block_size = 30;
+    end
+
+    trialinfo = DCM.M.trialinfo;
+
+
+    % Each block is separate -- effectively resetting beliefs at the start of
+    % each block. 
+    for idx_block = 1:num_blocks
+        %priors = posteriors;
+        %MDP     =
+        %advise_gen_model(trialinfo(30*idx_block-29:30*idx_block,:),priors);
+        %old model
+
+        if (num_trials == 1)
+            outcomes = u;
+            actions = y;
+            MDP.o  = outcomes{1};
+            MDP.u  = actions{1};
+        else
+            outcomes = u(30*idx_block-29:30*idx_block);
+            actions  = y(30*idx_block-29:30*idx_block);
+            for idx_trial = 1:30
+                MDP(idx_trial).o = outcomes{idx_trial};
+                MDP(idx_trial).u = actions{idx_trial};
+                MDP(idx_trial).reaction_times = DCM.reaction_times{idx_trial};
+                task.true_p_right(idx_trial) = 1-str2double(trialinfo{(idx_block-1)*30+idx_trial,2});
+                task.true_p_a(idx_trial) = str2double(trialinfo{(idx_block-1)*30+idx_trial,1});
+            end
+            if strcmp(trialinfo{idx_block*30-29,3}, '80')
+                task.block_type = "LL";
             else
-                outcomes = u(30*idx_block-29:30*idx_block);
-                actions  = y(30*idx_block-29:30*idx_block);
-                for idx_trial = 1:30
-                    MDP(idx_trial).o = outcomes{idx_trial};
-                    MDP(idx_trial).u = actions{idx_trial};
-                    MDP(idx_trial).reaction_times = DCM.reaction_times{idx_trial};
-                    task.true_p_right(idx_trial) = 1-str2double(trialinfo{(idx_block-1)*30+idx_trial,2});
-                    task.true_p_a(idx_trial) = str2double(trialinfo{(idx_block-1)*30+idx_trial,1});
-                end
-                if strcmp(trialinfo{idx_block*30-29,3}, '80')
-                    task.block_type = "LL";
-                else
-                    task.block_type = "SL";
-                end
-            end
-
-            % solve MDP and accumulate log-likelihood
-            %--------------------------------------------------------------------------
-
-             %MDPs  = spm_MDP_VB_X_advice(MDP); 
-             %MDPs  = spm_MDP_VB_X_advice_no_message_passing(MDP); 
-             % MDPs  = spm_MDP_VB_X_advice_no_message_passing_faster(MDP); 
-%              MDPs  = Simple_Advice_Model_CMG(task, MDP,params, 0);
-            if isequal(DCM.model,@Simple_Advice_Model_CMG)
-                 MDPs  = Simple_Advice_Model_CMG(task, MDP,params, 0);
-                 % bandit was chosen
-                 for j = 1:numel(actions)
-                    if actions{j}(2,1) ~= 2
-                       action_prob = MDPs.blockwise.action_probs(actions{j}(2,1)-1,1,j);
-                       act_prob_time1 = [act_prob_time1 action_prob]; 
-                        if action_prob == max(MDPs.blockwise.action_probs(:,1,j))
-                            model_acc_time1 = [model_acc_time1 1];
-                        else
-                            model_acc_time1 = [model_acc_time1 0];
-                        end
-
-                    else % when advisor was chosen
-                       prob_choose_advisor = MDPs.blockwise.action_probs(1,1,j); 
-                       prob_choose_bandit = MDPs.blockwise.action_probs(actions{j}(2,2)-1,2,j); 
-                       act_prob_time1 = [act_prob_time1 prob_choose_advisor];
-                       act_prob_time2 = [act_prob_time2 prob_choose_bandit];
-
-
-                       if prob_choose_advisor==max(MDPs.blockwise.action_probs(:,1,j))
-                          model_acc_time1 = [model_acc_time1 1];
-                       else
-                          model_acc_time1 = [model_acc_time1 0];
-                       end
-                       if prob_choose_bandit==max(MDPs.blockwise.action_probs(:,2,j))
-                          model_acc_time2 = [model_acc_time2 1];
-                       else
-                          model_acc_time2 = [model_acc_time2 0];
-                       end                    
-                    end
-                 end
-                % Save block of MDPs to list of all MDPs
-                 all_MDPs = [all_MDPs; MDPs'];
-
-                clear MDPs
-
-                
-            elseif isequal(DCM.model,@Simple_Advice_Model_CMG_same_num_choices)
-                MDPs  = Simple_Advice_Model_CMG_same_num_choices(task, MDP,params, 0);
-                for j = 1:block_size
-                    chose_advisor = actions{j}(2,1) == 2; 
-                    prob_choose_advisor = MDPs.blockwise.action_probs(1,1,j); 
-                    probability_advisor_choice = chose_advisor*prob_choose_advisor + (1-chose_advisor)*(1-prob_choose_advisor);
-                    act_prob_advisor = [act_prob_advisor probability_advisor_choice];
-                    if probability_advisor_choice > .5
-                        model_acc_advisor = [model_acc_advisor 1];
-                    else
-                        model_acc_advisor = [model_acc_advisor 0];
-                    end
-                    if chose_advisor
-                        chose_left_bandit = actions{j}(2,2) == 3;
-                    else
-                        chose_left_bandit = actions{j}(2,1) == 3;
-                    end
-                    prob_choose_left = MDPs.blockwise.action_probs(1,2,j); 
-                    prob_bandit_choice = chose_left_bandit*prob_choose_left + (1-chose_left_bandit)*(1-prob_choose_left);
-                    act_prob_bandit = [act_prob_bandit prob_bandit_choice];
-                    if prob_bandit_choice > .5
-                        model_acc_bandit = [model_acc_bandit 1];
-                    else
-                        model_acc_bandit = [model_acc_bandit 0];
-                    end
-                end
+                task.block_type = "SL";
             end
         end
 
-        % plotting
-        if plot
-            % for each trial
-            for i=1:length(DCM.U)
-                MDP(i).o = DCM.U{1,i};
-                MDP(i).u = DCM.Y{1,i};
-                MDP(i).reaction_times = DCM.reaction_times{1,i};
-                
-                block_num = ceil(i/30);
-                trial_num_within_block = i - (block_num-1)*30;
-                trial_action_probs = all_MDPs(block_num).blockwise.action_probs(:,:,trial_num_within_block);
-                % Concatenate the zero row at the top of the matrix
-                zero_row = zeros(1, size(trial_action_probs, 2));
-                trial_action_probs = vertcat(zero_row, trial_action_probs)';
-                MDP(i).P = permute(trial_action_probs, [3 2 1]);
-            end
-            advise_plot_cmg(MDP);
-
-        end
-         
-         
-        fit_results.id = subject;
-        fit_results.has_practice_effects = has_practice_effects;
-        fit_results.file = file;
-        % assign priors/posteriors/fixed params to fit_results
-        param_names = fieldnames(params);
-        for i = 1:length(param_names)
-            % param was fitted
-            if ismember(param_names{i}, fields)
-                fit_results.(['posterior_' param_names{i}]) = params.(param_names{i});
-                fit_results.(['prior_' param_names{i}]) = DCM.params.(param_names{i});  
-            % param was fixed
-            else
-                fit_results.(['fixed_' param_names{i}]) = params.(param_names{i});
-
-            end
-        end
-        
         if isequal(DCM.model,@Simple_Advice_Model_CMG)
-            fit_results.avg_act_prob_time1 = sum(act_prob_time1)/length(act_prob_time1);
-            fit_results.avg_act_prob_time2 = sum(act_prob_time2)/length(act_prob_time2);
-            fit_results.avg_model_acc_time1   = sum(model_acc_time1)/length(model_acc_time1);
-            fit_results.avg_model_acc_time2   = sum(model_acc_time2)/length(model_acc_time2);
-            fit_results.times_chosen_advisor = length(model_acc_time2);
-        elseif isequal(DCM.model,@Simple_Advice_Model_CMG_same_num_choices)
-            fit_results.avg_act_prob_advisor = sum(act_prob_advisor)/length(act_prob_advisor);
-            fit_results.avg_act_prob_bandit = sum(act_prob_bandit)/length(act_prob_bandit);
-            fit_results.avg_model_acc_advisor   = sum(model_acc_advisor)/length(model_acc_advisor);
-            fit_results.avg_model_acc_bandit  = sum(model_acc_bandit)/length(model_acc_bandit);
-        end
+            MDPs  = Simple_Advice_Model_CMG(task, MDP,params, 0);
+            % bandit was chosen
+            for j = 1:numel(actions)
+                if actions{j}(2,1) ~= 2
+                    action_prob = MDPs.blockwise.action_probs(actions{j}(2,1)-1,1,j);
+                    act_prob_time1 = [act_prob_time1 action_prob]; 
+                    if action_prob == max(MDPs.blockwise.action_probs(:,1,j))
+                        model_acc_time1 = [model_acc_time1 1];
+                    else
+                        model_acc_time1 = [model_acc_time1 0];
+                    end
 
-           
+                else % when advisor was chosen
+                    prob_choose_advisor = MDPs.blockwise.action_probs(1,1,j); 
+                    prob_choose_bandit = MDPs.blockwise.action_probs(actions{j}(2,2)-1,2,j); 
+                    act_prob_time1 = [act_prob_time1 prob_choose_advisor];
+                    act_prob_time2 = [act_prob_time2 prob_choose_bandit];
+                end
+
+
+                if prob_choose_advisor==max(MDPs.blockwise.action_probs(:,1,j))
+                    model_acc_time1 = [model_acc_time1 1];
+                else
+                    model_acc_time1 = [model_acc_time1 0];
+                end
+                if prob_choose_bandit==max(MDPs.blockwise.action_probs(:,2,j))
+                    model_acc_time2 = [model_acc_time2 1];
+                else
+                    model_acc_time2 = [model_acc_time2 0];
+                end                    
+            end
+            
+            % Save block of MDPs to list of all MDPs
+            all_MDPs = [all_MDPs; MDPs'];
+
+            clear MDPs
+        elseif isequal(DCM.model,@Simple_Advice_Model_CMG_same_num_choices)
+            MDPs  = Simple_Advice_Model_CMG_same_num_choices(task, MDP,params, 0);
+            for j = 1:block_size
+                chose_advisor = actions{j}(2,1) == 2; 
+                prob_choose_advisor = MDPs.blockwise.action_probs(1,1,j); 
+                probability_advisor_choice = chose_advisor*prob_choose_advisor + (1-chose_advisor)*(1-prob_choose_advisor);
+                act_prob_advisor = [act_prob_advisor probability_advisor_choice];
+                if probability_advisor_choice > .5
+                    model_acc_advisor = [model_acc_advisor 1];
+                else
+                    model_acc_advisor = [model_acc_advisor 0];
+                end
+
+                if chose_advisor
+                    chose_left_bandit = actions{j}(2,2) == 3;
+                else
+                    chose_left_bandit = actions{j}(2,1) == 3;
+                end
+
+                prob_choose_left = MDPs.blockwise.action_probs(1,2,j); 
+                prob_bandit_choice = chose_left_bandit*prob_choose_left + (1-chose_left_bandit)*(1-prob_choose_left);
+                act_prob_bandit = [act_prob_bandit prob_bandit_choice];
+                if prob_bandit_choice > .5
+                    model_acc_bandit = [model_acc_bandit 1];
+                else
+                    model_acc_bandit = [model_acc_bandit 0];
+                end
+
+            end
+
+        end
+    end
+
+    % plotting
+    if plot
+        % for each trial
+        for i=1:length(DCM.U)
+            MDP(i).o = DCM.U{1,i};
+            MDP(i).u = DCM.Y{1,i};
+            MDP(i).reaction_times = DCM.reaction_times{1,i};
+            
+            block_num = ceil(i/30);
+            trial_num_within_block = i - (block_num-1)*30;
+            trial_action_probs = all_MDPs(block_num).blockwise.action_probs(:,:,trial_num_within_block);
+            % Concatenate the zero row at the top of the matrix
+            zero_row = zeros(1, size(trial_action_probs, 2));
+            trial_action_probs = vertcat(zero_row, trial_action_probs)';
+            MDP(i).P = permute(trial_action_probs, [3 2 1]);
+        end
+        advise_plot_cmg(MDP);
+
+    end
+                
+                
+    fit_results.id = subject;
+    fit_results.has_practice_effects = has_practice_effects;
+    fit_results.file = file;
+    % assign priors/posteriors/fixed params to fit_results
+    param_names = fieldnames(params);
+    for i = 1:length(param_names)
+        % param was fitted
+        if ismember(param_names{i}, fields)
+            fit_results.(['posterior_' param_names{i}]) = params.(param_names{i});
+            fit_results.(['prior_' param_names{i}]) = DCM.params.(param_names{i});  
+        % param was fixed
+        else
+            fit_results.(['fixed_' param_names{i}]) = params.(param_names{i});
+
+        end
+    end
+                
+    if isequal(DCM.model,@Simple_Advice_Model_CMG)
+        fit_results.avg_act_prob_time1 = sum(act_prob_time1)/length(act_prob_time1);
+        fit_results.avg_act_prob_time2 = sum(act_prob_time2)/length(act_prob_time2);
+        fit_results.avg_model_acc_time1   = sum(model_acc_time1)/length(model_acc_time1);
+        fit_results.avg_model_acc_time2   = sum(model_acc_time2)/length(model_acc_time2);
+        fit_results.times_chosen_advisor = length(model_acc_time2);
+    elseif isequal(DCM.model,@Simple_Advice_Model_CMG_same_num_choices)
+        fit_results.avg_act_prob_advisor = sum(act_prob_advisor)/length(act_prob_advisor);
+        fit_results.avg_act_prob_bandit = sum(act_prob_bandit)/length(act_prob_bandit);
+        fit_results.avg_model_acc_advisor   = sum(model_acc_advisor)/length(model_acc_advisor);
+        fit_results.avg_model_acc_bandit  = sum(model_acc_bandit)/length(model_acc_bandit);
+    end
+
+                
 end
