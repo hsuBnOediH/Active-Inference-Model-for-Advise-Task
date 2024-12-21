@@ -3,7 +3,6 @@ import argparse
 
 subject_list_path = '/mnt/dell_storage/labs/rsmith/lab-members/fli/advise_task/subject_id/advise_subject_IDs_prolific_wo_uncomplete.csv'
 debug_subject_list_path = '/mnt/dell_storage/labs/rsmith/lab-members/fli/advise_task/subject_id/debug_subjects.csv'
-data_folder_path = 
 # use current time generate a folder to save the results
 import datetime
 folder_name = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")+ '_run'
