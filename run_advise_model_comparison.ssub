@@ -19,6 +19,9 @@ export RES_PATH
 IDX_CANDIDATE=$3
 export IDX_CANDIDATE
 
+INPUT_PATH='/mnt/dell_storage/labs/NPC/DataSink/StimTool_Online/WB_Advice'
+export INPUT_PATH
+
 
 module load matlab/2022a
 run_file='/media/labs/rsmith/lab-members/fli/advise_task/Active-Inference-Model-for-Advise-Task/main_advise.m'

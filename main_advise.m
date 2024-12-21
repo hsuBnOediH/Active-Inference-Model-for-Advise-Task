@@ -48,12 +48,14 @@ MODEL = @Simple_Advice_Model_CMG_same_num_choices;
 % Detect the system
 % 'pc' for Windows, 'mac' for local Mac, 'cluster' for running on VM cluster
 env_sys = '';
+ON_CLUSTER = false;
 if ispc
     env_sys = 'pc';
 elseif ismac
     env_sys = 'mac';
 elseif isunix
     env_sys = 'cluster';
+    ON_CLUSTER = true;
 else
     disp('Unknown operating system.');
 end
@@ -65,34 +67,33 @@ if isempty(ROOT)
     disp(['ROOT path set to: ', ROOT]);
 end
 
-if isempty(FIT_SUBJECT)
+if ON_CLUSTER
     % Read from environment variable if empty
     FIT_SUBJECT = getenv('FIT_SUBJECT');
+else
+    FIT_SUBJECT = 'FENGTEST';
 end
 
 
+if ON_CLUSTER
+    IDX_CANDIDATE = str2double(getenv('IDX_CANDIDATE'));
+else
+    IDX_CANDIDATE = 1;
+end
 
-if IDX_CANDIDATE < 1 || IDX_CANDIDATE > 10
-    env_value = getenv('IDX_CANDIDATE');
-    if ~isempty(env_value)
-        IDX_CANDIDATE = str2double(env_value);
-    end
+if ON_CLUSTER
+    RES_PATH = getenv('RES_PATH');
+else
+    RES_PATH = 'results/';
+end
+
+if ON_CLUSTER
+    INPUT_PATH = getenv('INPUT_PATH');
+else
+    INPUT_PATH = 'inputs/';
 end
 
 
-% Check and handle RES_PATH
-if isempty(RES_PATH)
-    RES_PATH = fullfile(ROOT, 'results');
-elseif strcmp(env_sys, 'cluster') && strcmp(RES_PATH, 'env_var')
-    RES_PATH = getenv(RESULTS);
-end
-
-% Check and handle INPUT_PATH
-if isempty(INPUT_PATH)
-    INPUT_PATH = fullfile(ROOT, 'inputs');
-elseif strcmp(env_sys, 'cluster') && strcmp(INPUT_PATH, 'env_var')
-    INPUT_PATH = getenv('INPUT_DIRECTORY'); 
-end
 
 
 % Display all settings and switches
